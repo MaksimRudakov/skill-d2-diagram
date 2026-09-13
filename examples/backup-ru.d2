@@ -1,0 +1,43 @@
+# Назначение: схема резервного копирования (пример схемы на русском)
+# Рендер: d2 --layout elk backup-ru.d2 backup-ru.svg
+direction: down
+
+classes: {
+  zone: {style: {fill: "#eef4fb"; stroke: "#4a78a8"}}          # cluster, data center, VPC
+  outside: {style: {fill: "#f7f7f2"; stroke: "#8a8a70"}}       # internet, everything outside
+  app: {style: {fill: "#dcebd8"; stroke: "#5b8c51"}}           # applications, workloads, data sources
+  service: {style: {fill: "#fdeeda"; stroke: "#b8863b"}}       # platform services and tools
+  store: {style: {fill: "#e0f2f1"; stroke: "#00796b"}}         # databases, object and backup storage
+  planned: {style: {fill: "#fffde7"; stroke: "#fbc02d"; stroke-dash: 5}}                # planned, not built yet
+  backup: {style: {stroke: "#2b8a3e"; font-color: "#2b8a3e"}}                    # green
+  warn: {style: {stroke: "#c92a2a"; font-color: "#c92a2a"; stroke-dash: 3}}      # red dashed: note → object
+}
+
+prod: "Контур prod" {
+  class: zone
+  k8s: "Kubernetes-кластер (prod)\nманифесты · PV" {class: app}
+  db: "Базы данных\nPostgreSQL · MySQL" {class: store}
+  vms: "Виртуальные машины\nшлюзы · бастион · сервисы" {class: app}
+  velero: "Velero" {class: service}
+  dump: "Бэкап баз\nfull раз в сутки · WAL непрерывно" {class: service}
+  k8s -> velero {class: backup}
+  db -> dump {class: backup}
+}
+
+storage: "Хранилище резервных копий" {
+  class: zone
+  s3: "Объектное хранилище (S3-совместимое)\nхранение 30 дней · versioning" {class: store}
+  offsite: "Копия во втором ЦОД\nхранение 90 дней" {class: store}
+  immutable: "Неизменяемые копии\n(object lock)" {class: planned}
+  s3 -> offsite: "репликация раз в сутки" {class: backup}
+  s3 -> immutable: "планируется" {class: backup; style.stroke-dash: 5}
+}
+
+prod.velero -> storage.s3: "ежедневно" {class: backup}
+prod.dump -> storage.s3: "ежечасно" {class: backup}
+prod.vms -> storage.s3: "снимки ВМ\nеженедельно" {class: backup}
+
+note: "Восстановление проверяется\nраз в квартал" {shape: text}
+note -> storage.offsite {class: warn}
+
+legend: "Легенда: зелёный — резервные копии · красный пунктир — замечание · жёлтый пунктир — планируется" {shape: text; near: bottom-center}

@@ -1,0 +1,46 @@
+# Purpose: metrics, logs and alerts flows of a platform with several clusters
+# Render: d2 --layout elk monitoring.d2 monitoring.svg
+direction: down
+
+classes: {
+  zone: {style: {fill: "#eef4fb"; stroke: "#4a78a8"}}          # cluster, data center, VPC
+  outside: {style: {fill: "#f7f7f2"; stroke: "#8a8a70"}}       # internet, everything outside
+  app: {style: {fill: "#dcebd8"; stroke: "#5b8c51"}}           # applications, workloads, data sources
+  service: {style: {fill: "#fdeeda"; stroke: "#b8863b"}}       # platform services and tools
+  store: {style: {fill: "#e0f2f1"; stroke: "#00796b"}}         # databases, object and backup storage
+  external: {style: {fill: "#f5f5f5"; stroke: "#9e9e9e"; stroke-dash: 3}}              # external systems
+  metrics: {style: {stroke: "#3b5bdb"; font-color: "#3b5bdb"}}                   # blue
+  logs: {style: {stroke: "#e8590c"; font-color: "#c2410c"}}                      # orange
+  alerts: {style: {stroke: "#c92a2a"; font-color: "#c92a2a"}}                    # red
+}
+
+sources: "Workload clusters (production, staging, development)" {
+  class: zone
+  apps: "Applications\n/metrics · stdout" {class: app}
+  agents: "Agents per cluster\nPrometheus agent · log collector" {class: service}
+  apps -> agents: "scrape / tail" {class: metrics}
+}
+
+platform: "Observability platform" {
+  class: zone
+  mimir: "Mimir\nlong-term metrics" {class: service}
+  loki: "Loki\nlogs" {class: service}
+  alertmanager: "Alertmanager" {class: service}
+  grafana: "Grafana\ndashboards · alert rules" {class: service}
+  grafana -> mimir: "query" {class: metrics}
+  grafana -> loki: "query" {class: logs}
+  mimir -> alertmanager: "firing alerts" {class: alerts}
+}
+
+storage: "Object storage (S3-compatible)" {class: store}
+oncall: "On-call engineers" {shape: person}
+chat: "Chat and paging" {class: external}
+
+sources.agents -> platform.mimir: "remote_write" {class: metrics}
+sources.agents -> platform.loki: "push" {class: logs}
+platform.mimir -> storage: "blocks" {class: metrics}
+platform.loki -> storage: "chunks" {class: logs}
+platform.alertmanager -> chat: "notifications" {class: alerts}
+chat -> oncall {class: alerts}
+
+legend: "Legend: blue — metrics · orange — logs · red — alerts" {shape: text; near: bottom-center}

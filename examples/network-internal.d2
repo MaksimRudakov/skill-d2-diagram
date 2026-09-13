@@ -1,0 +1,40 @@
+# Internal: do not share outside the team
+# Purpose: the same topology as network.d2 with addressing, for the team
+# Addresses are from documentation ranges (RFC 5737, RFC 3849); names use the reserved .internal zone
+# Render: d2 --layout elk network-internal.d2 network-internal.svg
+direction: down
+
+classes: {
+  zone: {style: {fill: "#eef4fb"; stroke: "#4a78a8"}}          # cluster, data center, VPC
+  outside: {style: {fill: "#f7f7f2"; stroke: "#8a8a70"}}       # internet, everything outside
+  mgmt: {style: {fill: "#eeeeee"; stroke: "#666666"}}          # management network / tooling
+  app: {style: {fill: "#dcebd8"; stroke: "#5b8c51"}}           # applications, workloads, data sources
+  store: {style: {fill: "#e0f2f1"; stroke: "#00796b"}}         # databases, object and backup storage
+  lb: {style: {fill: "#fff8e1"; stroke: "#d4a017"}}            # load balancers, ingress, API gateways
+  fw: {style: {fill: "#fde8e8"; stroke: "#c0392b"}}            # firewalls, WAF
+  net: {style: {fill: "#eceff1"; stroke: "#546e7a"}}           # routers, switches, network core
+  control: {style: {stroke: "#0b7285"; font-color: "#0b7285"}}                   # teal: control plane, sync, BGP/OSPF
+  public: {style: {stroke: "#ae3ec9"; font-color: "#ae3ec9"; stroke-width: 3}}   # magenta, thick: public traffic
+}
+
+internet: "Internet" {class: outside; users: "Customers" {shape: person}}
+
+dc: "DC1 · 192.0.2.0/24 public, 198.51.100.0/24 transit" {
+  class: zone
+  fw: "fw-ha.dc1.example.internal\n192.0.2.1 (VIP)" {class: fw}
+  core: "core-01 / core-02\nVLAN trunk" {class: net}
+  dmz: "VLAN 110 · DMZ · 198.51.100.64/27" {
+    class: zone
+    lb: "lb.dc1.example.internal\n198.51.100.70" {class: lb}
+  }
+  prod: "VLAN 120 · prod · 198.51.100.128/26" {
+    class: zone
+    k8s: "k8s-prod API 198.51.100.130\nIPv6 2001:db8:120::10" {class: app}
+    db: "pg-01.prod.example.internal\n198.51.100.140" {class: store}
+  }
+  mgmt: "VLAN 900 · mgmt" {class: mgmt; bastion: "bastion.example.internal" {class: app}}
+  fw -> core -> dmz.lb -> prod.k8s -> prod.db
+  mgmt.bastion -> core: "ssh" {class: control}
+}
+
+internet.users -> dc.fw: "HTTPS 443" {class: public}

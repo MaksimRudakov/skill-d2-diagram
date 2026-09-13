@@ -1,0 +1,77 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  D2_VERSION: v0.9.0
+  GITLEAKS_VERSION: 8.30.1
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            d2_asset: linux-amd64
+            bash: bash
+          # macOS runs the suite with the system /bin/bash 3.2 and BSD grep/sed/awk on purpose
+          - os: macos-14
+            d2_asset: macos-arm64
+            bash: /bin/bash
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install d2 ${{ env.D2_VERSION }} (checksum verified)
+        run: |
+          set -euo pipefail
+          tarball="d2-${D2_VERSION}-${{ matrix.d2_asset }}.tar.gz"
+          base="https://github.com/d2lang/d2/releases/download/${D2_VERSION}"
+          cd "${RUNNER_TEMP}"
+          curl -fsSLO "${base}/${tarball}"
+          curl -fsSLO "${base}/SHA256SUMS"
+          grep " ${tarball}\$" SHA256SUMS | shasum -a 256 -c -
+          tar xzf "${tarball}"
+          echo "${RUNNER_TEMP}/d2-${D2_VERSION}/bin" >> "${GITHUB_PATH}"
+
+      - name: Tests
+        env:
+          REQUIRE_D2: "1"
+        run: |
+          d2 --version
+          ${{ matrix.bash }} --version | head -n 1
+          ${{ matrix.bash }} tests/test.sh
+
+  shellcheck:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+      - run: shellcheck --version | head -n 2 && shellcheck scripts/*.sh tests/*.sh
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks ${{ env.GITLEAKS_VERSION }} (checksum verified)
+        run: |
+          set -euo pipefail
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          cd "${RUNNER_TEMP}"
+          curl -fsSLO "${base}/${tarball}"
+          curl -fsSLO "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " ${tarball}\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
+          tar xzf "${tarball}" gitleaks
+          cd "${GITHUB_WORKSPACE}"
+          "${RUNNER_TEMP}/gitleaks" git --redact --verbose .

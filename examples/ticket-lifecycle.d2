@@ -1,0 +1,32 @@
+# Purpose: lifecycle of a ticket (state machine example)
+# Render: d2 --layout elk ticket-lifecycle.d2 ticket-lifecycle.svg
+direction: down
+
+classes: {
+  state: {style: {fill: "#e7f5ff"; stroke: "#1c7ed6"; border-radius: 12}}               # state in a state machine
+  initial: {shape: circle; width: 18; height: 18; style: {fill: "#212529"; stroke: "#212529"}}                       # initial pseudo-state
+  final: {shape: circle; width: 18; height: 18; style: {fill: "#ffffff"; stroke: "#212529"; stroke-width: 3; double-border: true}}   # final state
+}
+
+init: "" {class: initial}
+backlog: "Backlog" {class: state}
+todo: "To do" {class: state}
+progress: "In progress" {class: state}
+blocked: "Blocked" {class: state}
+review: "Validation" {class: state}
+done: "Done" {class: state}
+cancelled: "Cancelled" {class: state}
+fin: "" {class: final}
+
+init -> backlog: "created"
+backlog -> todo: "planned"
+todo -> progress: "start"
+progress -> blocked: "waiting [reason in comment]"
+blocked -> progress: "unblocked"
+progress -> review: "submit"
+review -> progress: "changes requested"
+review -> done: "approve"
+backlog -> cancelled: "cancel"
+todo -> cancelled: "cancel"
+done -> fin
+cancelled -> fin

@@ -1,0 +1,2 @@
+# sh -c '...' _ "$arg" in tests intentionally uses single quotes
+disable=SC2016

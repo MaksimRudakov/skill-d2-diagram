@@ -1,0 +1,31 @@
+# Purpose: sign-in with single sign-on (sequence diagram example)
+# Render: d2 --layout elk sso-login.d2 sso-login.svg
+login: "Sign-in with SSO (OpenID Connect, authorization code flow)" {
+  shape: sequence_diagram
+  user: "Browser"
+  app: "Web application"
+  idp: "Identity provider"
+  api: "Backend API"
+
+  user -> app: "GET /dashboard"
+  app -> app: "no session cookie"
+  app -> user: "302 → identity provider (state, PKCE challenge)"
+  user -> idp: "sign-in page"
+  user -> idp: "credentials + MFA"
+
+  valid: "credentials valid" {
+    idp -> user: "302 → /callback?code"
+    user -> app: "GET /callback?code"
+    app.token -> idp: "exchange code (PKCE verifier)"
+    idp -> app.token: "ID token + access token"
+    app -> user: "set session cookie, 302 → /dashboard"
+    user -> app: "GET /dashboard"
+    app.call -> api: "request with access token"
+    api -> app.call: "data"
+    app -> user: "dashboard"
+  }
+  invalid: "credentials invalid" {
+    idp -> user: "error, retry"
+  }
+  app."tokens are never exposed to JavaScript"
+}

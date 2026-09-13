@@ -1,0 +1,50 @@
+# Purpose: database schema of an order service (ER example)
+# Render: d2 --layout elk orders-schema.d2 orders-schema.svg
+direction: right
+
+customers: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  email: text {constraint: unique}
+  name: text
+  created_at: timestamptz
+}
+
+orders: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  customer_id: uuid {constraint: foreign_key}
+  status: text
+  total: numeric(12,2)
+  created_at: timestamptz
+}
+
+order_items: {
+  shape: sql_table
+  order_id: uuid {constraint: [primary_key; foreign_key]}
+  line_no: int {constraint: primary_key}
+  product_id: uuid {constraint: foreign_key}
+  quantity: int
+  price: numeric(12,2)
+}
+
+products: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  sku: text {constraint: unique}
+  title: text
+}
+
+payments: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  order_id: uuid {constraint: foreign_key}
+  provider_ref: text {constraint: unique}
+  amount: numeric(12,2)
+  paid_at: timestamptz
+}
+
+orders.customer_id -> customers.id
+order_items.order_id -> orders.id
+order_items.product_id -> products.id
+payments.order_id -> orders.id
