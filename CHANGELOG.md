@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — 2026-09-13
+
+- `anonymity-check.sh` failed on macOS: BSD awk rejects newlines in `-v` values ("newline in string"),
+  the TLD list is now a single line. Found by the macOS CI job; reproduced locally with one-true-awk.
+- CI: `actions/checkout@v5` (Node 24).
+
 ## 1.0.0 — 2026-09-13
 
 First public release.

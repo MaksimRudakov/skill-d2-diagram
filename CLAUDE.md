@@ -32,7 +32,8 @@
   and may use only documentation address ranges (RFC 5737, RFC 3849) and the `.internal` / `example.*` names.
   After editing an example, re-render its SVG with the pinned d2 and look at the PNG before committing.
 - **Scripts**: bash 3.2 compatible (the macOS CI job runs `/bin/bash` 3.2 with BSD tools), POSIX awk without
-  interval expressions (`{n,m}` breaks old mawk), `grep -E` for regexes. In `grep -o` patterns never add a
+  interval expressions (`{n,m}` breaks old mawk) and without newlines in `-v` values (BSD awk on macOS fails with
+  "newline in string"), `grep -E` for regexes. In `grep -o` patterns never add a
   trailing boundary group: it consumes the separator and the next adjacent match is lost. Exit codes are an
   interface: `0` ok, `1` findings, `2` usage.
 - **Versions** are pinned in `.github/workflows/ci.yml` (`D2_VERSION`, `GITLEAKS_VERSION`) and mentioned in

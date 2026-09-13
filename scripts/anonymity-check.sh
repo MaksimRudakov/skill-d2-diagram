@@ -11,10 +11,11 @@ TAB="$(printf '\t')"
 
 # Real and internal TLDs. Two-letter ccTLDs that collide with file extensions or typical
 # diagram ids (sh, md, py, pl, so, tf, rs, lb, fw, sw, db, ui, go) are deliberately left out.
-TLDS="com net org io dev app cloud ai co me info biz gov edu mil int tech online site xyz
-kz ru uz kg tj tm by ua am az ge de uk us eu fr nl be ch at it es pt se fi no dk pl cz sk hu ro bg gr tr il ae sa qa
-cn jp kr in sg hk tw au nz ca mx br ar cl
-local internal lan corp home intranet private localdomain localhost svc"
+# One line on purpose: BSD awk (macOS) rejects newlines in -v values ("newline in string").
+TLDS="com net org io dev app cloud ai co me info biz gov edu mil int tech online site xyz"
+TLDS="${TLDS} kz ru uz kg tj tm by ua am az ge de uk us eu fr nl be ch at it es pt se fi no dk pl cz sk hu ro bg gr tr il ae sa qa"
+TLDS="${TLDS} cn jp kr in sg hk tw au nz ca mx br ar cl"
+TLDS="${TLDS} local internal lan corp home intranet private localdomain localhost svc"
 
 usage() {
   cat >&2 <<USAGE
